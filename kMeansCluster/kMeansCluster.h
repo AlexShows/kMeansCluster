@@ -48,6 +48,7 @@ private:
 	void computeCentroids();
 	void randomizeClusterPositions();
 	void handleKey(const char key = 0);
+	float computeDistance(float AX, float AY, float BX, float BY);
 	CRITICAL_SECTION csPoints;
 	CRITICAL_SECTION csClusters;
 	CRITICAL_SECTION csStartingClusters;

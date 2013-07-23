@@ -9,8 +9,6 @@ Note that this is a fork of the GDIWindow project, which was an example building
 Future Work
 ===========
 
-Fix the initial random seed generator so it's smarter (probably a distance check on nearest neighbor)  
-
 Implement a threading model with synchronization
 
 License

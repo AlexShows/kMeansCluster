@@ -51,7 +51,7 @@ kMeansCluster::kMeansCluster(string name, const int w, const int h)
 
 kMeansCluster::~kMeansCluster(void)
 {
-	// Where's the best place for this? Here or after the parent's message_loop returns?
+	// GdiplusShutdown is after the parent's message_loop returns
 //	GdiplusShutdown(gdiplusToken); 
 
 	DeleteCriticalSection(&csPoints);
@@ -318,6 +318,56 @@ void kMeansCluster::initializeData()
 										rand()%(CDP_COLOR_UPPER_BOUND-100),
 										rand()%(CDP_COLOR_UPPER_BOUND-100)));
 		} // end else
+
+		// Smarter (?) method of random cluster seeding
+		unsigned int minSafeDistance = (min(CDP_X_UPPER_BOUND, CDP_Y_UPPER_BOUND)) / (MAX_CLUSTERS); 
+	
+		// Minimum safe distance check prevents the initial cluster positions from being too close
+		bool reachedSafeDistance = false;
+		int loopCounter = 0;
+		while(!reachedSafeDistance && vClusters.size() >= 2) // Do we have two points to compare, or have we already reached a safe distance? 
+		{
+			// Step through the first N-1 clusters and compute distance to the last random seed
+			for(unsigned int k=0; k<vClusters.size()-1; k++)
+			{
+				// Assume we're safe until proven otherwise (below)
+				reachedSafeDistance = true;
+
+				// If all the N-1 cluster seed positions are far enough from the last one,
+				// then we've reached a safe distance
+				// BUT if one fails, regenerate the last point and start over
+				if(computeDistance((float)vClusters[k].get_x(), 
+									(float)vClusters[k].get_y(),
+									(float)vClusters.back().get_x(), 
+									(float)vClusters.back().get_y()) 
+									< minSafeDistance 
+									&& loopCounter < 10) 
+				{
+					// Because we've failed to reach minimum safe distance, regenerate and reset the loop
+					CDataPoint replacementPoint(vClusters.back()); // Copy the old point and then change the position
+					replacementPoint.set_x(rand()%CDP_X_UPPER_BOUND);
+					replacementPoint.set_y(rand()%CDP_Y_UPPER_BOUND);
+					vClusters.pop_back();
+					vClusters.push_back(replacementPoint);
+					
+					ostringstream ss;
+					ss << "Point failed test for minimum safe distance. Loop counter is " << loopCounter << endl;
+					OutputDebugString(ss.str().c_str());
+					
+					k = 0;
+					loopCounter++;
+					reachedSafeDistance = false;
+
+					if(loopCounter >= 10)
+						OutputDebugString("Giving up. Too many attempts to find a minimum safe distance.");
+
+				} // end if the computed distance isn't safe (or the loop counter is exceeded)
+			
+			} // end for the clusters already seeded
+
+		} // end while we haven't reached a safe distance with the most recently added point
+
+
 	} // end for each cluster
 
 	LeaveCriticalSection(&csClusters);
@@ -445,13 +495,7 @@ void kMeansCluster::assignData()
 
 		for(vector<CDataPoint>::iterator cIt = vClusters.begin(); cIt != vClusters.end(); ++cIt)
 		{
-			float X2minusX1 = (float)((float)it->get_x() - (float)cIt->get_x()); 
-			float Y2minusY1 = (float)((float)it->get_y() - (float)cIt->get_y());
-
-			float squaredXdiff = X2minusX1 * X2minusX1;
-			float squaredYdiff = Y2minusY1 * Y2minusY1;
-		
-			float distance = sqrt(squaredXdiff + squaredYdiff);
+			float distance = computeDistance((float)it->get_x(), (float)it->get_y(), (float)cIt->get_x(), (float)cIt->get_y());
 
 			// If this cluster is closer than the last, assign and color code to this cluster
 			if(distance < lastDistance)
@@ -571,4 +615,17 @@ void kMeansCluster::handleKey(const char key)
 		break;
 	}
 
+}
+
+float kMeansCluster::computeDistance(float AX, float AY, float BX, float BY)
+{
+	float X2minusX1 = AX - BX; 
+	float Y2minusY1 = AY - BY;
+
+	float squaredXdiff = X2minusX1 * X2minusX1;
+	float squaredYdiff = Y2minusY1 * Y2minusY1;
+		
+	// This is an expensive operation
+	// TODO - consider situational compares where this can be skipped
+	return sqrt(squaredXdiff + squaredYdiff);
 }
