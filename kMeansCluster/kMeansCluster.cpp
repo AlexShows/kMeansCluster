@@ -151,27 +151,27 @@ void kMeansCluster::updateWindow(HDC hdc)
 
 	EnterCriticalSection(&csPoints);
 	// Draw each data point
-	for( vector<CDataPoint>::iterator it = vPoints.begin() ; it != vPoints.end(); ++it)
+	for( auto& it : vPoints )
 	{
-		CDataPoint &dataPoint = *it;
+		CDataPoint &dataPoint = it;
 		drawPoint(hdc, &dataPoint, insetOffsetX, insetOffsetY);
 	}
 	LeaveCriticalSection(&csPoints);
 
 	EnterCriticalSection(&csClusters);
 	// Draw each cluster
-	for( vector<CDataPoint>::iterator cIt = vClusters.begin() ; cIt != vClusters.end(); ++cIt)
+	for( auto & cIt : vClusters )
 	{
-		CDataPoint &cluster = *cIt;
+		CDataPoint &cluster = cIt;
 		drawCluster(hdc, &cluster, insetOffsetX, insetOffsetY);
 	}
 	LeaveCriticalSection(&csClusters);
 
 	EnterCriticalSection(&csStartingClusters);
 	// Draw each optimal cluster
-	for( vector<CDataPoint>::iterator ocIt = vStartingClusters.begin() ; ocIt != vStartingClusters.end(); ++ocIt)
+	for( auto & ocIt : vStartingClusters )
 	{
-		CDataPoint &optimalCluster = *ocIt;
+		CDataPoint &optimalCluster = ocIt;
 		drawOptimalCluster(hdc, &optimalCluster, insetOffsetX, insetOffsetY);
 	}
 	LeaveCriticalSection(&csStartingClusters);
@@ -251,10 +251,10 @@ void kMeansCluster::initializeData()
 
 	// Check to see if any of the points are out of bounds
 #ifdef _DEBUG
-	for(vector<CDataPoint>::iterator it = vPoints.begin(); it != vPoints.end(); ++it)
+	for( auto & it : vPoints )
 	{
-		unsigned int ptX = it->get_x();
-		unsigned int ptY = it->get_y();
+		unsigned int ptX = it.get_x();
+		unsigned int ptY = it.get_y();
 
 		if(ptX < 0)
 			OutputDebugString("X value is less than 0\n");
@@ -488,23 +488,23 @@ void kMeansCluster::assignData()
 
 	// For each data point, measure the distance to each cluster and color the data point 
 	// according to the closest cluster
-	for(vector<CDataPoint>::iterator it = vPoints.begin(); it != vPoints.end(); ++it)
+	for( auto& it : vPoints )
 	{
 		float lastDistance = CDP_X_UPPER_BOUND + CDP_Y_UPPER_BOUND;
 		unsigned int currentCluster = 0;
 
-		for(vector<CDataPoint>::iterator cIt = vClusters.begin(); cIt != vClusters.end(); ++cIt)
+		for( auto& cIt : vClusters ) 
 		{
-			float distance = computeDistance((float)it->get_x(), (float)it->get_y(), (float)cIt->get_x(), (float)cIt->get_y());
+			float distance = computeDistance((float)it.get_x(), (float)it.get_y(), (float)cIt.get_x(), (float)cIt.get_y());
 
 			// If this cluster is closer than the last, assign and color code to this cluster
 			if(distance < lastDistance)
 			{
 				lastDistance = distance;
-				it->set_r(cIt->get_r());
-				it->set_b(cIt->get_b());
-				it->set_g(cIt->get_g());
-				it->set_cluster_index(currentCluster);
+				it.set_r(cIt.get_r());
+				it.set_b(cIt.get_b());
+				it.set_g(cIt.get_g());
+				it.set_cluster_index(currentCluster);
 			}
 
 			currentCluster++;
@@ -524,19 +524,19 @@ void kMeansCluster::computeCentroids()
 
 	unsigned int currentClusterIndex = 0;
 	// For each cluster...
-	for(vector<CDataPoint>::iterator cIt = vClusters.begin(); cIt != vClusters.end(); ++cIt)
+	for( auto& cIt : vClusters ) 
 	{
 		float xAccum = 0; // x position accumulator
 		float yAccum = 0; // y position accumulator
 		float dpCount = 0; // how many data points 
 
 		// For each data point...
-		for(vector<CDataPoint>::iterator it = vPoints.begin(); it != vPoints.end(); ++it)
+		for( auto& it : vPoints )
 		{
-			if(it->get_cluster_index() == currentClusterIndex)
+			if(it.get_cluster_index() == currentClusterIndex)
 			{
-				xAccum += it->get_x();
-				yAccum += it->get_y();
+				xAccum += it.get_x();
+				yAccum += it.get_y();
 				dpCount++;
 			}
 		} // end FOR each data point
@@ -546,8 +546,8 @@ void kMeansCluster::computeCentroids()
 		if(!dpCount)
 		{
 			OutputDebugString("Error - no data points associated with cluster\n");
-			cIt->set_x(rand()%CDP_X_UPPER_BOUND);
-			cIt->set_y(rand()%CDP_Y_UPPER_BOUND);
+			cIt.set_x(rand()%CDP_X_UPPER_BOUND);
+			cIt.set_y(rand()%CDP_Y_UPPER_BOUND);
 		}
 		else
 		{
@@ -560,8 +560,8 @@ void kMeansCluster::computeCentroids()
 			if((yMean - (int)yMean) > 0.5f)
 				yMean++;
 
-			cIt->set_x((const int)xMean);
-			cIt->set_y((const int)yMean);
+			cIt.set_x((const int)xMean);
+			cIt.set_y((const int)yMean);
 		}
 
 		currentClusterIndex++;
@@ -578,10 +578,10 @@ void kMeansCluster::randomizeClusterPositions()
 {
 	EnterCriticalSection(&csClusters);
 
-	for(vector<CDataPoint>::iterator cIt = vClusters.begin(); cIt != vClusters.end(); ++cIt)
+	for( auto& cIt : vClusters ) 
 	{
-		cIt->set_x(rand()%CDP_X_UPPER_BOUND);
-		cIt->set_y(rand()%CDP_Y_UPPER_BOUND);
+		cIt.set_x(rand()%CDP_X_UPPER_BOUND);
+		cIt.set_y(rand()%CDP_Y_UPPER_BOUND);
 	} // end FOR each cluster
 
 	LeaveCriticalSection(&csClusters);
